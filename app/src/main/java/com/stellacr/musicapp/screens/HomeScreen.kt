@@ -1,4 +1,4 @@
-package com.stellacr.musicapp.screens
+package com.pjsoft.libraryapp.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -36,11 +36,11 @@ data class Album(
     val description: String
 ) : Serializable
 
-private val PurpleDark = Color(0xFF2B134F)
-private val Purple = Color(0xFF7B61FF)
-private val Bg = Color(0xFFF3ECFF)
-private val TextPrimary = Color(0xFF111111)
-private val TextSecondary = Color(0xFF6B6B6B)
+val PurpleDark = Color(0xFF2B134F)
+val Purple = Color(0xFF7B61FF)
+val Bg = Color(0xFFF3ECFF)
+val TextPrimary = Color(0xFF111111)
+val TextSecondary = Color(0xFF6B6B6B)
 
 
 @Composable
@@ -50,6 +50,8 @@ fun HomeScreen(
     recently: List<Album> = sampleAlbums.shuffled(),
     onAlbumClick: (Album) -> Unit = {}
 ) {
+    var isPlaying by remember { mutableStateOf(true) }
+    val current = albums.first()
 
     Box(
         modifier = Modifier
@@ -87,6 +89,14 @@ fun HomeScreen(
             }
         }
 
+        MiniPlayer(
+            album = current,
+            isPlaying = isPlaying,
+            onPlayPause = { isPlaying = !isPlaying },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+        )
     }
 }
 
@@ -202,6 +212,40 @@ fun RecentlyPlayedItem(album: Album, onClick: () -> Unit) {
     }
 }
 
+@Composable
+fun MiniPlayer(album: Album, isPlaying: Boolean, onPlayPause: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        color = PurpleDark,
+        shape = RoundedCornerShape(24.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = album.imageUrl,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(10.dp)),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(album.title, color = Color.White, fontWeight = FontWeight.Bold)
+                Text(album.artist, color = Color.White.copy(alpha = 0.8f))
+            }
+            FilledIconButton(onClick = onPlayPause, colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.White)) {
+                Icon(
+                    if (isPlaying) Icons.Rounded.Pause else Icons.Default.PlayArrow,
+                    null,
+                    tint = PurpleDark
+                )
+            }
+        }
+    }
+}
 
 val sampleAlbums = listOf(
     Album(1, "Tales of Ithiria", "Haggard", "https://", "Álbum sinfónico."),
