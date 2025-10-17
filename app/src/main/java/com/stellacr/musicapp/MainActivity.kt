@@ -1,17 +1,15 @@
 package com.stellacr.musicapp
 
+import com.stellacr.musicapp.models.Album
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.pjsoft.libraryapp.screens.Album
 import com.pjsoft.libraryapp.screens.HomeScreen
 import com.stellacr.musicapp.screens.DetailScreen
 
@@ -36,7 +34,9 @@ fun MusicApp() {
                     HomeScreen(
                         name = "Stella Casillas",
                         onAlbumClick = { album ->
-                            navController.currentBackStackEntry?.savedStateHandle?.set("album", album)
+                            navController.currentBackStackEntry
+                                ?.savedStateHandle
+                                ?.set("album", album)
                             navController.navigate("detail")
                         }
                     )

@@ -1,5 +1,6 @@
 package com.pjsoft.libraryapp.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,15 +27,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import java.io.Serializable
+import com.stellacr.musicapp.models.Album
+import com.stellacr.musicapp.services.ProductService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
-data class Album(
-    val id: Int,
-    val title: String,
-    val artist: String,
-    val imageUrl: String,
-    val description: String
-) : Serializable
+import java.io.Serializable
+import kotlin.jvm.java
 
 val PurpleDark = Color(0xFF2B134F)
 val Purple = Color(0xFF7B61FF)
@@ -46,59 +47,90 @@ val TextSecondary = Color(0xFF6B6B6B)
 @Composable
 fun HomeScreen(
     name: String = "Stella Casillas",
-    albums: List<Album> = sampleAlbums,
-    recently: List<Album> = sampleAlbums.shuffled(),
     onAlbumClick: (Album) -> Unit = {}
 ) {
-    var isPlaying by remember { mutableStateOf(true) }
-    val current = albums.first()
+    var albums by remember { mutableStateOf<List<Album>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Bg)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 96.dp)
-        ) {
-            HeaderHome(name)
-            SectionHeader("Albums", "See more")
+    LaunchedEffect(Unit) {
+        try {
+            val retrofit = Retrofit.Builder()
+                .baseUrl("https://music.juanfrausto.com/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+            val service = retrofit.create(ProductService::class.java)
+            val result = withContext(Dispatchers.IO) { service.getAlbums() }
+            albums = result
+        } catch (e: Exception) {
+            Log.e("HomeScreen", "Error: ${e.message}")
+        } finally {
+            isLoading = false
+        }
+    }
 
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(18.dp)
-            ) {
-                items(albums) { album ->
-                    AlbumCard(album) { onAlbumClick(album) }
-                }
+    if (isLoading) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = Purple)
+        }
+    } else {
+        if (albums.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No albums found", color = TextPrimary)
             }
+        } else {
+            var isPlaying by remember { mutableStateOf(true) }
+            val current = albums.first()
+            val recently = albums.shuffled()
 
-            Spacer(Modifier.height(12.dp))
-            SectionHeader("Recently Played", "See more")
-
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Bg)
             ) {
-                items(recently) { album ->
-                    RecentlyPlayedItem(album) { onAlbumClick(album) }
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 96.dp)
+                ) {
+                    HeaderHome(name)
+                    SectionHeader("Albums", "See more")
+
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        items(albums) { album ->
+                            AlbumCard(album) { onAlbumClick(album) }
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+                    SectionHeader("Recently Played", "See more")
+
+                    LazyColumn(
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        items(recently) { album ->
+                            RecentlyPlayedItem(album) { onAlbumClick(album) }
+                        }
+                        item { Spacer(Modifier.height(30.dp)) }
+                    }
                 }
-                item { Spacer(Modifier.height(30.dp)) }
+
+                MiniPlayer(
+                    album = current,
+                    isPlaying = isPlaying,
+                    onPlayPause = { isPlaying = !isPlaying },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                )
             }
         }
-
-        MiniPlayer(
-            album = current,
-            isPlaying = isPlaying,
-            onPlayPause = { isPlaying = !isPlaying },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp)
-        )
     }
 }
+
 
 
 @Composable
@@ -153,7 +185,7 @@ fun AlbumCard(album: Album, onClick: () -> Unit) {
             .clickable(onClick = onClick)
     ) {
         AsyncImage(
-            model = album.imageUrl,
+            model = album.image,
             contentDescription = album.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
@@ -197,7 +229,7 @@ fun RecentlyPlayedItem(album: Album, onClick: () -> Unit) {
     ) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
-                model = album.imageUrl,
+                model = album.image,
                 contentDescription = album.title,
                 modifier = Modifier
                     .size(52.dp)
@@ -227,7 +259,7 @@ fun MiniPlayer(album: Album, isPlaying: Boolean, onPlayPause: () -> Unit, modifi
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
-                model = album.imageUrl,
+                model = album.image,
                 contentDescription = null,
                 modifier = Modifier
                     .size(44.dp)
@@ -250,9 +282,3 @@ fun MiniPlayer(album: Album, isPlaying: Boolean, onPlayPause: () -> Unit, modifi
     }
 }
 
-val sampleAlbums = listOf(
-    Album(1, "Tales of Ithiria", "Haggard", "https://", "Álbum sinfónico."),
-    Album(2, "Awake", "Avenged Sevenfold", "https://", "Metal melódico."),
-    Album(3, "Nightmare", "Avenged Sevenfold", "https://", "Clásico moderno."),
-    Album(4, "Abbey Road", "The Beatles", "https://", "Leyenda británica.")
-)

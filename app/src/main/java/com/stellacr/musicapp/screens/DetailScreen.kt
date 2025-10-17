@@ -1,5 +1,6 @@
 package com.stellacr.musicapp.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,7 +14,6 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,49 +27,84 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.pjsoft.libraryapp.screens.*
-
+import com.pjsoft.libraryapp.screens.Bg
+import com.pjsoft.libraryapp.screens.MiniPlayer
+import com.pjsoft.libraryapp.screens.Purple
+import com.pjsoft.libraryapp.screens.PurpleDark
+import com.pjsoft.libraryapp.screens.TextPrimary
+import com.pjsoft.libraryapp.screens.TextSecondary
+import com.stellacr.musicapp.models.Album
+import com.stellacr.musicapp.services.ProductService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 @Composable
-fun DetailScreen(
-    album: Album,
-    onBack: () -> Unit = {}
-) {
-    var playing by remember { mutableStateOf(false) }
+fun DetailScreen(album: Album, onBack: () -> Unit = {}) {
+    var albumDetail by remember { mutableStateOf<Album?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var isPlaying by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Bg)
-    ) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 96.dp)
-        ) {
-            item { HeaderDetail(album, onBack) }
-
-            item {
-                AboutCard(album.description)
-                Spacer(Modifier.height(16.dp))
-                ArtistCard(album.artist)
-                Spacer(Modifier.height(20.dp))
-            }
-
-            items((1..10).map { "${album.title} • Track $it" }) { track ->
-                TrackItem(album, track)
-            }
-            item { Spacer(Modifier.height(24.dp)) }
+    LaunchedEffect(album.id) {
+        try {
+            val retrofit = Retrofit.Builder()
+                .baseUrl("https://music.juanfrausto.com/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+            val service = retrofit.create(ProductService::class.java)
+            val result = withContext(Dispatchers.IO) { service.getAlbumDetail(album.id) }
+            albumDetail = result
+        } catch (e: Exception) {
+            Log.e("DetailScreen", "Error: ${e.message}")
+        } finally {
+            isLoading = false
         }
+    }
 
-        MiniPlayer(
-            album = album,
-            isPlaying = playing,
-            onPlayPause = { playing = !playing },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp)
-        )
+    if (isLoading) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = Purple)
+        }
+    } else {
+        albumDetail?.let { data ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Bg)
+            ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 96.dp)
+                ) {
+                    item { HeaderDetail(data, onBack) }
+                    item {
+                        AboutCard(data.description)
+                        Spacer(Modifier.height(16.dp))
+                        ArtistCard(data.artist)
+                        Spacer(Modifier.height(20.dp))
+                    }
+                    items((1..10).map { "${data.title} • Track $it" }) { track ->
+                        TrackItem(data, track)
+                    }
+                    item { Spacer(Modifier.height(24.dp)) }
+                }
+
+                MiniPlayer(
+                    album = data,
+                    isPlaying = isPlaying,
+                    onPlayPause = { isPlaying = !isPlaying },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                )
+            }
+        } ?: run {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Error loading album", color = Color.Red)
+            }
+        }
     }
 }
 
@@ -84,7 +119,7 @@ private fun HeaderDetail(album: Album, onBack: () -> Unit) {
             .fillMaxWidth()
     ) {
         AsyncImage(
-            model = album.imageUrl,
+            model = album.image,
             contentDescription = album.title,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
@@ -127,28 +162,21 @@ private fun HeaderDetail(album: Album, onBack: () -> Unit) {
             Text(album.artist, color = Color.White.copy(alpha = 0.9f))
             Spacer(Modifier.height(20.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Box(
+                FilledIconButton(
+                    onClick = {},
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = Color.Transparent
+                    ),
                     modifier = Modifier
                         .size(56.dp)
-                        .clip(CircleShape)
                         .background(
                             Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color(0xFF7B61FF),
-                                    Color(0xFFA58BFF)
-                                )
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    IconButton(onClick = {}) {
-                        Icon(
-                            Icons.Default.PlayArrow,
-                            contentDescription = "Play",
-                            tint = Color.White,
-                            modifier = Modifier.size(30.dp)
+                                listOf(Purple, Color(0xFFA58BFF))
+                            ),
+                            shape = CircleShape
                         )
-                    }
+                ) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Color.White)
                 }
 
                 FilledIconButton(
@@ -156,7 +184,7 @@ private fun HeaderDetail(album: Album, onBack: () -> Unit) {
                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.White),
                     modifier = Modifier.size(56.dp),
                 ) {
-                    Icon(Icons.Default.Pause, contentDescription = "Pause", tint = Color(0xFF2B134F))
+                    Icon(Icons.Default.Pause, contentDescription = "Pause", tint = PurpleDark)
                 }
             }
         }
@@ -191,8 +219,7 @@ private fun ArtistCard(artist: String) {
         tonalElevation = 2.dp,
         modifier = Modifier
             .padding(horizontal = 20.dp)
-            .widthIn(min = 140.dp, max = 220.dp)
-            .fillMaxWidth()
+            .width(180.dp)
     ) {
         Row(
             Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
@@ -222,7 +249,7 @@ private fun TrackItem(album: Album, title: String) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
-                model = album.imageUrl,
+                model = album.image,
                 contentDescription = title,
                 modifier = Modifier
                     .size(52.dp)
@@ -240,13 +267,8 @@ private fun TrackItem(album: Album, title: String) {
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(album.artist, color = TextSecondary, fontSize = 14.sp)
-
             }
-            Icon(
-                Icons.Default.MoreVert,
-                contentDescription = "More options",
-                tint = TextSecondary
-            )
+            Icon(Icons.Default.MoreVert, null, tint = TextSecondary)
         }
     }
 }
