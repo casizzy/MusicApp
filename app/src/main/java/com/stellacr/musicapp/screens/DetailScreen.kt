@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pjsoft.libraryapp.screens.*
+
 
 @Composable
 fun DetailScreen(
@@ -71,7 +73,6 @@ fun DetailScreen(
     }
 }
 
-/* ---------- COMPONENTES ---------- */
 
 @Composable
 private fun HeaderDetail(album: Album, onBack: () -> Unit) {
@@ -126,20 +127,36 @@ private fun HeaderDetail(album: Album, onBack: () -> Unit) {
             Text(album.artist, color = Color.White.copy(alpha = 0.9f))
             Spacer(Modifier.height(20.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                FilledIconButton(
-                    onClick = {},
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = Purple),
-                    modifier = Modifier.size(56.dp),
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(0xFF7B61FF),
+                                    Color(0xFFA58BFF)
+                                )
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Color.White)
+                    IconButton(onClick = {}) {
+                        Icon(
+                            Icons.Default.PlayArrow,
+                            contentDescription = "Play",
+                            tint = Color.White,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
                 }
 
                 FilledIconButton(
                     onClick = {},
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.White.copy(alpha = 0.7f)),
+                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.White),
                     modifier = Modifier.size(56.dp),
                 ) {
-                    Icon(Icons.Default.Pause, contentDescription = "Pause", tint = Color.White)
+                    Icon(Icons.Default.Pause, contentDescription = "Pause", tint = Color(0xFF2B134F))
                 }
             }
         }
@@ -170,16 +187,18 @@ private fun ArtistCard(artist: String) {
     Surface(
         color = Color.White,
         shape = RoundedCornerShape(20.dp),
+        shadowElevation = 8.dp,
         tonalElevation = 2.dp,
         modifier = Modifier
             .padding(horizontal = 20.dp)
+            .widthIn(min = 140.dp, max = 220.dp)
             .fillMaxWidth()
     ) {
         Row(
             Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Artist:", color = Purple, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("Artist:", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             Spacer(Modifier.width(6.dp))
             Text(artist, color = TextPrimary, fontSize = 15.sp)
         }
@@ -192,6 +211,7 @@ private fun TrackItem(album: Album, title: String) {
         color = Color.White,
         shape = RoundedCornerShape(18.dp),
         tonalElevation = 1.dp,
+        shadowElevation = 8.dp,
         modifier = Modifier
             .padding(horizontal = 20.dp, vertical = 6.dp)
             .fillMaxWidth()
@@ -220,7 +240,13 @@ private fun TrackItem(album: Album, title: String) {
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(album.artist, color = TextSecondary, fontSize = 14.sp)
+
             }
+            Icon(
+                Icons.Default.MoreVert,
+                contentDescription = "More options",
+                tint = TextSecondary
+            )
         }
     }
 }

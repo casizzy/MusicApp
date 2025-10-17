@@ -175,6 +175,7 @@ fun AlbumCard(album: Album, onClick: () -> Unit) {
             Surface(
                 shape = CircleShape,
                 color = Color.White.copy(alpha = 0.3f),
+                shadowElevation = 8.dp,
                 modifier = Modifier.align(Alignment.BottomEnd)
             ) {
                 Icon(Icons.Default.PlayArrow, null, tint = Color.White, modifier = Modifier.padding(10.dp))
@@ -189,6 +190,7 @@ fun RecentlyPlayedItem(album: Album, onClick: () -> Unit) {
         color = Color.White,
         shape = RoundedCornerShape(18.dp),
         tonalElevation = 2.dp,
+        shadowElevation = 8.dp,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
@@ -216,6 +218,7 @@ fun RecentlyPlayedItem(album: Album, onClick: () -> Unit) {
 fun MiniPlayer(album: Album, isPlaying: Boolean, onPlayPause: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         color = PurpleDark,
+        shadowElevation = 8.dp,
         shape = RoundedCornerShape(24.dp),
         modifier = modifier.fillMaxWidth()
     ) {
